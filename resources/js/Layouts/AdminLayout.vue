@@ -29,9 +29,6 @@ const logout = () => {
     
 <template>
     <div>
-
-        <Head :title="title" />
-
         <Banner />
 
         <div class="flex h-screen bg-gray-200 font-roboto">

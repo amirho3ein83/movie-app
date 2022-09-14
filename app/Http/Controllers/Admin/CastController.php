@@ -1,9 +1,14 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
+
+use App\Models\Cast;
 use Inertia\Inertia;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Request as FacadesRequest;
+use Illuminate\Support\Str;
 
 class CastController extends BaseController
 {
@@ -14,7 +19,13 @@ class CastController extends BaseController
      */
     public function index()
     {
-        return Inertia::render('Casts/Index');
+        $perPage = FacadesRequest::input('perPage') ?: 5;
+        return Inertia::render('Casts/Index', [
+            'tags' => Cast::query()->when(FacadesRequest::input('search'),function($query,$search){
+                return $query->where('tag_name','like',"%{$search}%");
+            })->paginate($perPage)->withQueryString(),
+            'filters' => FacadesRequest::only(['search','perPage'])
+        ]);
         
     }
 
@@ -36,7 +47,14 @@ class CastController extends BaseController
      */
     public function store(Request $request)
     {
-        //
+
+        Log::info('s');
+        Cast::create([
+            'tag_name' => $request->tag_name,
+            'slug' => Str::slug($request->tag_name),
+        ]);
+
+        return redirect()->route('admin.tags.index')->with('flash.banner', "{$request->tag_name} created");
     }
 
     /**
