@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Request as FacadesRequest;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -17,7 +19,13 @@ class TagController extends BaseController
      */
     public function index()
     {
-        return Inertia::render('Tags/Index');
+        $perPage = FacadesRequest::input('perPage') ?: 5;
+        return Inertia::render('Tags/Index', [
+            'tags' => Tag::query()->when(FacadesRequest::input('search'),function($query,$search){
+                return $query->where('tag_name','like',"%{$search}%");
+            })->paginate($perPage)->withQueryString(),
+            'filters' => FacadesRequest::only(['search','perPage'])
+        ]);
     }
 
     /**
@@ -43,7 +51,7 @@ class TagController extends BaseController
             'slug' => Str::slug($request->tag_name),
         ]);
 
-        return Redirect::route('admin.tags.index');
+        return redirect()->route('admin.tags.index')->with('flash.banner', "{$request->tag_name} created");
     }
 
     /**
@@ -63,9 +71,9 @@ class TagController extends BaseController
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Tag $tag)
     {
-        //
+        return Inertia::render('Tags/Edit',['tag'=>$tag]);
     }
 
     /**
@@ -75,9 +83,14 @@ class TagController extends BaseController
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Tag $tag)
     {
-        //
+        $tag->update([
+            'tag_name' => $request->tag_name,
+            'slug' => Str::slug($request->tag_name),
+        ]);
+        return redirect()->route('admin.tags.index')->with('flash.banner', "{$request->tag_name} updated");
+
     }
 
     /**
@@ -86,8 +99,12 @@ class TagController extends BaseController
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Tag $tag)
     {
-        //
+        Log::info($tag);
+        $tag->delete();
+
+        return redirect()->route('admin.tags.index')->with('flash.banner', "{$tag->tag_name} deleted");
+
     }
 }
